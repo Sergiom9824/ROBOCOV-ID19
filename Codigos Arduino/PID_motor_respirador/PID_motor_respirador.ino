@@ -1,6 +1,7 @@
 #include <PID_v1.h>
 #include "MeanFilterLib.h"
 #include <TimerOne.h>
+#include <LiquidCrystal.h>
 
 // Specification
 const uint16_t cuentas_max = 3400;
@@ -14,6 +15,7 @@ double velocidadf = 0;
 // Pines
 int Pin_encoder_A = 2, Pin_encoder_B = 3;
 int PWM_R = 6, PWM_L= 5;
+int rs = 8, en = 9, d4 = 4, d5 = 10, d6 = 11, d7 = 7;
 
 // Encoder
 volatile int32_t cuentas = 0;
@@ -35,7 +37,9 @@ double Setpoint = 0.0, PWM = 0;
 PID VelPID(&velocidadf, &PWM, &Setpoint, Kp, Ki, Kd, DIRECT);
 int U =0;
 
-float ta,td, d;
+// LCD
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
 
 void setup() 
 {
@@ -49,15 +53,16 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(Pin_encoder_A), Lectura_Encoder, CHANGE);
     attachInterrupt(digitalPinToInterrupt(Pin_encoder_B), Lectura_Encoder, CHANGE);
     Timer1.initialize(dt*1000); 
-    Timer1.attachInterrupt(ISR_Timer) ;
-    
+    Timer1.attachInterrupt(ISR_Timer) ; 
+    lcd.begin(16, 2);
+    lcd.print("Ventilador UTEC"); 
+    lcd.setCursor(0, 1);
+    lcd.print("BPM:40,Ratio:1:4");
 }
 
 void loop()
-{   //ta = micros();
+{   
     Serial.println(current_position);
-     //d =ta - td;
-  //td = ta;
 }
 
 void ISR_Timer()
@@ -72,9 +77,10 @@ void ISR_Timer()
         analogWrite(PWM_R,0);
     }
     else{
-        analogWrite(PWM_L,0);
-        analogWrite(PWM_R,U);
+        analogWrite(PWM_L,U);
+        analogWrite(PWM_R,255);
     }
+    
     current_position = cuentas*2*Pi/cuentas_max; 
     velocidad = ((current_position - last_position)/(dt)*1000);
     velocidad = meanFilter.AddValue(velocidad);
